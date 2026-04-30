@@ -55,7 +55,7 @@ notion-clone/
 
 1️⃣ Clone Repository
 
-git clone https://github.com/YOUR_USERNAME/notion-clone.git
+git clone https://github.com/AKSHAYA_GUDLA/notion-clone.git
 cd notion-clone
 
 ---
