@@ -1,81 +1,102 @@
-# Notion-lite (Real-Time Notes & Task Board)
+🧠 Notion Clone App
 
-## 🚀 Overview
-This project is a full-stack application that allows multiple users to manage notes and Kanban tasks in real time.
-
----
-
-## 🛠 Tech Stack
-- Backend: FastAPI (Python)
-- Frontend: React.js
-- Database: SQLite
-- Real-time: WebSockets
-- Version Control: Git + GitHub
+A full-stack Notion-like productivity application that allows users to manage tasks, notes, and notifications with a Kanban-style board.
 
 ---
 
-## ✨ Features
+🚀 Features
 
-### 🔐 Authentication
-- User login & registration
-- JWT-based authentication
-
-### 📁 Workspace System
-- Create and manage workspaces
-- Role-based access (Owner, Editor, Viewer)
-
-### 📝 Notes
-- Create, edit, delete notes
-- Basic version history
-
-### 📋 Kanban Board
-- Columns: To Do, In Progress, Done
-- Add / update / delete tasks
-- Drag and drop functionality
-
-### ⚡ Real-Time
-- Live updates using WebSockets
-- Sync across multiple users
+- 📝 Create and manage notes
+- ✅ Task management (Todo / In Progress / Completed)
+- 🔔 Real-time notifications
+- 📊 Analytics (task stats)
+- 🔍 Search functionality
+- ⚡ Fast API with optimized backend
+- 📄 Pagination support
 
 ---
 
-## 📂 Project Structure
+🛠️ Tech Stack
+
+🔹 Frontend
+
+- React.js
+- Axios
+- CSS
+
+🔹 Backend
+
+- FastAPI
+- SQLAlchemy
+- SQLite
+
+---
+
+📁 Project Structure
+
 notion-clone/
- ├── backend/
- ├── frontend/
- ├── README.md
+│
+├── backend/
+│   ├── app/
+│   ├── routes/
+│   ├── models/
+│   └── main.py
+│
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   └── package.json
+│
+└── README.md
 
 ---
 
-## ⚙️ Setup Instructions
+⚙️ Installation & Setup
 
-### Backend
-cd backend  
-pip install -r requirements.txt  
-uvicorn app.main:app --reload  
+1️⃣ Clone Repository
 
-### Frontend
-cd frontend  
-npm install  
-npm start  
+git clone https://github.com/YOUR_USERNAME/notion-clone.git
+cd notion-clone
 
 ---
 
-## 🌐 API Documentation
+2️⃣ Backend Setup
+
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+
+---
+
+3️⃣ Frontend Setup
+
+cd frontend
+npm install
+npm start
+
+---
+
+🌐 API Docs
+
+After running backend:
+
 http://127.0.0.1:8000/docs
 
 ---
 
-## 📸 Demo
-(Add screenshots or screen recording here)
+💡 Future Improvements
+
+- User authentication (JWT)
+- Drag & drop Kanban
+- Dark mode UI
+- Deployment (Render / Vercel)
 
 ---
 
-## 📌 Notes
-- Real-time sync implemented using WebSockets
-- Designed with scalable backend structure
+🙌 Author
 
----
-
-## 👩‍💻 Author
 Akshaya Gudla
+
+---
+
+⭐ If you like this project, give it a star!
