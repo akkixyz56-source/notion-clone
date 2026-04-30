@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String
 from app.db.database import Base
 
 class Task(Base):
@@ -7,4 +7,4 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
     description = Column(String)
-    column_id = Column(Integer, ForeignKey("columns.id"))
+    column_id = Column(Integer)

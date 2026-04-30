@@ -1,17 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.db.database import SessionLocal
-from app.models import Board, Column, Task
-from app.services.websocket.manager import manager
-from app.db.deps import get_db
-from fastapi import Depends
+from app.db.session import SessionLocal
+from app.models.task import Task
+from app.models.notification import Notification
 
-router = APIRouter()
+router = APIRouter(prefix="/kanban", tags=["Kanban"])
 
 
-# =========================
 # DB Dependency
-# =========================
 def get_db():
     db = SessionLocal()
     try:
@@ -20,134 +16,62 @@ def get_db():
         db.close()
 
 
-# =========================
-# BOARDS
-# =========================
-
-@router.post("/boards")
-async def create_board(board: dict):
-    db = SessionLocal()
-
-    new_board = Board(
-        name=board["name"],
-        workspace_id=board["workspace_id"]
-    )
-
-    db.add(new_board)
-    db.commit()
-    db.refresh(new_board)
-
-    return new_board
-
-
-@router.get("/boards")
-async def get_boards():
-    db = SessionLocal()
-    boards = db.query(Board).all()
-    return boards
-
-
-# =========================
-# COLUMNS
-# =========================
-
-@router.post("/columns")
-async def create_column(column: dict):
-    db = SessionLocal()
-
-    new_column = Column(
-        name=column["name"],
-        board_id=column["board_id"]
-    )
-
-    db.add(new_column)
-    db.commit()
-    db.refresh(new_column)
-
-    return new_column
-
-
-@router.get("/columns/{board_id}")
-async def get_columns(board_id: int):
-    db = SessionLocal()
-    columns = db.query(Column).filter(Column.board_id == board_id).all()
-    return columns
-
-
-# =========================
-# TASKS
-# =========================
-
+# ✅ CREATE TASK
 @router.post("/tasks")
-async def create_task(task: dict):
-    db = SessionLocal()
-
-    # ✅ Check column exists
-    column = db.query(Column).filter(Column.id == task["column_id"]).first()
-    if not column:
-        raise HTTPException(status_code=404, detail="Column not found")
-
-    new_task = Task(
-        title=task["title"],
-        description=task.get("description"),
-        column_id=task["column_id"]
-    )
-
-    db.add(new_task)
+def create_task(title: str, description: str, column_id: int, db: Session = Depends(get_db)):
+    task = Task(title=title, description=description, column_id=column_id)
+    db.add(task)
     db.commit()
-    db.refresh(new_task)
+    db.refresh(task)
 
-    # 🔥 Real-time broadcast
-    await manager.broadcast(f"Task Created: {new_task.title}")
+    # 🔔 Notification
+    notif = Notification(message=f"Task '{title}' created")
+    db.add(notif)
+    db.commit()
 
-    return new_task
+    return task
 
+
+# ✅ GET TASKS (Pagination + Search)
 @router.get("/tasks")
-async def get_all_tasks():
-    db = SessionLocal()
-    tasks = db.query(Task).all()
+def get_tasks(skip: int = 0, limit: int = 10, search: str = "", db: Session = Depends(get_db)):
+    query = db.query(Task)
+
+    if search:
+        query = query.filter(Task.title.contains(search))
+
+    tasks = query.offset(skip).limit(limit).all()
     return tasks
 
 
-@router.get("/tasks")
-def get_all_tasks(db: Session = Depends(get_db)):
-    return db.query(Task).all()
-
-
-@router.put("/tasks/{task_id}")
-async def update_task(task_id: int, task: dict):
-    db = SessionLocal()
-
-    existing_task = db.query(Task).filter(Task.id == task_id).first()
-    if not existing_task:
-        raise HTTPException(status_code=404, detail="Task not found")
-
-    # ✅ Update fields
-    existing_task.title = task.get("title", existing_task.title)
-    existing_task.description = task.get("description", existing_task.description)
-    existing_task.column_id = task.get("column_id", existing_task.column_id)
-
-    db.commit()
-    db.refresh(existing_task)
-
-    # 🔥 Real-time broadcast
-    await manager.broadcast(f"Task Updated: {existing_task.title}")
-
-    return existing_task
-
-
+# ✅ DELETE TASK
 @router.delete("/tasks/{task_id}")
-async def delete_task(task_id: int):
-    db = SessionLocal()
-
+def delete_task(task_id: int, db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id).first()
+
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
     db.delete(task)
     db.commit()
 
-    # 🔥 Real-time broadcast
-    await manager.broadcast(f"Task Deleted: {task.title}")
+    # 🔔 Notification
+    notif = Notification(message=f"Task '{task.title}' deleted")
+    db.add(notif)
+    db.commit()
 
-    return {"message": "Task deleted successfully"}
+    return {"message": "Task deleted"}
+
+
+# ✅ ANALYTICS
+@router.get("/analytics")
+def get_analytics(db: Session = Depends(get_db)):
+    total = db.query(Task).count()
+    completed = db.query(Task).filter(Task.column_id == 3).count()
+    pending = total - completed
+
+    return {
+        "total": total,
+        "completed": completed,
+        "pending": pending
+    }

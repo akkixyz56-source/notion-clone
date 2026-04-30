@@ -1,18 +1,10 @@
 from fastapi import APIRouter, WebSocket
-from app.services.websocket.manager import manager
 
 router = APIRouter()
 
-@router.websocket("/")
+@router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
-
-    try:
-        while True:
-            data = await websocket.receive_text()
-
-            # 🔥 broadcast to ALL users
-            await manager.broadcast(f"User says: {data}")
-
-    except:
-        manager.disconnect(websocket)
+    await websocket.accept()
+    while True:
+        data = await websocket.receive_text()
+        await websocket.send_text(f"Message: {data}")

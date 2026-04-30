@@ -1,38 +1,79 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.schemas.user import UserCreate, UserLogin
+from passlib.context import CryptContext
+from datetime import datetime, timedelta
+from jose import jwt
+
+from app.db.database import get_db
 from app.models.user import User
-from app.db.deps import get_db
-from app.core.security import hash_password, verify_password
-from app.core.jwt import create_access_token
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
+# 🔐 Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# 🔑 JWT Config
+SECRET_KEY = "supersecretkey"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+
+# 🔹 Hash password
+def hash_password(password: str):
+    return pwd_context.hash(password)
+
+
+# 🔹 Verify password
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+# 🔹 Create token
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+# ===========================
+# 🟢 REGISTER USER
+# ===========================
 @router.post("/register")
-def register(user: UserCreate, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == user.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already exists")
+def register(username: str, password: str, db: Session = Depends(get_db)):
+    existing_user = db.query(User).filter(User.username == username).first()
+
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User already exists")
 
     new_user = User(
-        name=user.name,
-        email=user.email,
-        password=hash_password(user.password)
+        username=username,
+        hashed_password=hash_password(password)
     )
 
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
 
-    return {"message": "User created"}
+    return {"message": "User created successfully"}
 
+
+# ===========================
+# 🔵 LOGIN USER
+# ===========================
 @router.post("/login")
-def login(user: UserLogin, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.email == user.email).first()
+def login(username: str, password: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == username).first()
 
-    if not db_user or not verify_password(user.password, db_user.password):
+    if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    token = create_access_token({"sub": db_user.email})
+    if not verify_password(password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    return {"access_token": token}
+    token = create_access_token({"sub": user.username})
+
+    return {
+        "access_token": token,
+        "token_type": "bearer"
+    }
